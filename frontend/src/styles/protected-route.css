@@ -1,0 +1,95 @@
+.protected-route {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.pin-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.pin-card {
+  background: white;
+  border: 3px solid var(--text-dark);
+  padding: 50px 30px;
+  text-align: center;
+}
+
+.pin-card h1 {
+  font-size: 28px;
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+}
+
+.pin-card p {
+  font-size: 16px;
+  color: var(--text-light);
+  margin-bottom: 30px;
+}
+
+.pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.pin-form input {
+  padding: 15px;
+  font-size: 24px;
+  letter-spacing: 5px;
+  text-align: center;
+  border: 2px solid var(--text-dark);
+  font-family: monospace;
+}
+
+.pin-form input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.1);
+}
+
+.pin-form .btn {
+  width: 100%;
+}
+
+.protected-content {
+  min-height: 100vh;
+}
+
+.admin-navbar {
+  background: var(--secondary-color);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--text-dark);
+}
+
+.admin-badge {
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background: white;
+  color: var(--secondary-color);
+  border: 2px solid white;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  transition: var(--transition);
+  text-transform: uppercase;
+}
+
+.btn-logout:hover {
+  background: var(--text-dark);
+  color: white;
+  border-color: var(--text-dark);
+}

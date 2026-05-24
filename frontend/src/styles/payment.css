@@ -1,0 +1,278 @@
+.payment-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  padding: 20px;
+}
+
+.payment-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.payment-header h1 {
+  font-size: 36px;
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+}
+
+.payment-header p {
+  font-size: 16px;
+  color: var(--text-light);
+}
+
+.payment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.payment-section {
+  background: white;
+  border: 3px solid var(--text-dark);
+  padding: 30px;
+}
+
+.payment-section h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.method-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.method-option:hover {
+  background-color: rgba(255, 0, 0, 0.05);
+}
+
+.method-option input {
+  width: auto;
+  cursor: pointer;
+}
+
+.method-label {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.amount-section {
+  margin-bottom: 30px;
+}
+
+.amount-section h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.amount-btn {
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+  transition: var(--transition);
+}
+
+.amount-btn:hover,
+.amount-btn.active {
+  background: var(--secondary-color);
+  color: white;
+  border-color: var(--secondary-color);
+}
+
+.custom-amount input {
+  width: 100%;
+}
+
+.bank-info {
+  background: rgba(255, 0, 0, 0.05);
+  padding: 20px;
+  border: 2px solid var(--secondary-color);
+  margin-top: 20px;
+}
+
+.bank-info h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.bank-details {
+  margin-bottom: 15px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row .label {
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.detail-row .value {
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--text-dark);
+}
+
+.detail-row .value.highlight {
+  color: var(--secondary-color);
+  font-size: 18px;
+}
+
+.copy-text {
+  cursor: pointer;
+  user-select: all;
+}
+
+.info-text {
+  font-size: 14px;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.qris-section {
+  margin-top: 20px;
+}
+
+.qris-display {
+  margin-top: 20px;
+  text-align: center;
+  background: rgba(255, 0, 0, 0.05);
+  padding: 20px;
+  border: 2px solid var(--secondary-color);
+}
+
+.qris-placeholder {
+  margin: 20px 0;
+}
+
+.qris-image {
+  width: 200px;
+  height: 200px;
+  border: 2px solid var(--text-dark);
+  margin-bottom: 10px;
+}
+
+.qris-info {
+  font-size: 14px;
+  color: var(--text-light);
+}
+
+.payment-summary {
+  background: #f9f9f9;
+  padding: 20px;
+  border: 2px dashed var(--border-color);
+}
+
+.summary {
+  margin-bottom: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 16px;
+}
+
+.summary-row.total {
+  border-bottom: 3px solid var(--secondary-color);
+  font-weight: 700;
+  font-size: 18px;
+  padding: 15px 0;
+}
+
+.summary-row .highlight {
+  color: var(--secondary-color);
+  font-weight: 700;
+}
+
+.confirmation-section {
+  margin-bottom: 20px;
+}
+
+.confirm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.confirm-checkbox input {
+  width: auto;
+  cursor: pointer;
+}
+
+.payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-contacts {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
+}
+
+.admin-contacts h4 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.admin-contacts p {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+@media (max-width: 768px) {
+  .payment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .amount-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .payment-header h1 {
+    font-size: 24px;
+  }
+}
