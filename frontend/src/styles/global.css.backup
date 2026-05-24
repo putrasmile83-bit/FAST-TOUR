@@ -109,6 +109,7 @@ body {
   justify-content: center;
   gap: 8px;
   box-shadow: var(--shadow-md);
+}
   letter-spacing: 1px;
 }
 

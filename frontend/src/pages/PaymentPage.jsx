@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext'
 import { toast } from 'react-toastify'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import axios from 'axios'
+import QRISDisplay from '../components/QRISDisplay'
 import '../styles/payment.css'
 
 function PaymentPage() {
@@ -176,19 +177,12 @@ function PaymentPage() {
                   Generate QRIS ({paymentAmount}K)
                 </button>
                 {showQRIS && (
-                  <div className="qris-display animate-slide">
-                    <h3>Scan to Pay</h3>
-                    <div className="qris-placeholder">
-                      <img
-                        src="/assets/qris-placeholder.png"
-                        alt="QRIS Code"
-                        className="qris-image"
-                      />
-                      <p>Amount: {paymentAmount}K</p>
-                    </div>
-                    <p className="qris-info">
-                      Scan this QR code with your mobile banking app to complete payment.
-                    </p>
+                  <div className="animate-slide">
+                    <QRISDisplay 
+                      amount={paymentAmount} 
+                      registrationId={registrationId}
+                      onClose={() => setShowQRIS(false)}
+                    />
                   </div>
                 )}
               </div>

@@ -1,0 +1,393 @@
+/* QRIS Display Styles - Okalpha Theme */
+
+.qris-display-wrapper {
+  width: 100%;
+  margin: 20px 0;
+}
+
+.qris-display-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border: 2px solid #e63946;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(230, 57, 70, 0.12);
+  transition: all 0.3s ease;
+}
+
+.qris-display-card:hover {
+  box-shadow: 0 12px 32px rgba(230, 57, 70, 0.18);
+  transform: translateY(-2px);
+}
+
+.qris-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.qris-header h3 {
+  color: #e63946;
+  font-size: 1.5rem;
+  margin: 0 0 12px 0;
+  font-weight: 700;
+}
+
+.qris-amount {
+  color: #555;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.qris-amount .highlight {
+  color: #e63946;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+/* Container */
+.qris-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-height: 300px;
+  justify-content: center;
+}
+
+/* Loading State */
+.qris-loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f0f0f0;
+  border-top: 4px solid #e63946;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.qris-loading-spinner p {
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Error State */
+.qris-error-message {
+  text-align: center;
+  padding: 24px;
+  background: #ffe6e6;
+  border-radius: 12px;
+  border-left: 4px solid #e63946;
+}
+
+.qris-error-message p {
+  color: #c92a2a;
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+}
+
+/* QR Code Content */
+.qris-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.qris-image-wrapper {
+  position: relative;
+  display: inline-block;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  border: 2px solid #e63946;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.qris-image-wrapper:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(230, 57, 70, 0.15);
+}
+
+.qris-image {
+  display: block;
+  width: 280px;
+  height: 280px;
+  object-fit: contain;
+  image-rendering: crisp-edges;
+}
+
+.qris-hint {
+  text-align: center;
+  color: #999;
+  font-size: 0.85rem;
+  margin: 8px 0 0 0;
+  font-style: italic;
+}
+
+/* Actions */
+.qris-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qris-actions .btn {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #e63946;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #c92a2a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(230, 57, 70, 0.3);
+}
+
+.btn-secondary {
+  background-color: #f5f5f5;
+  color: #e63946;
+  border: 2px solid #e63946;
+}
+
+.btn-secondary:hover {
+  background-color: #fff3e0;
+  transform: translateY(-2px);
+}
+
+/* Instructions */
+.qris-instructions {
+  background: #f9f9f9;
+  border-left: 4px solid #ffd700;
+  padding: 16px;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.qris-instructions h4 {
+  color: #e63946;
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+}
+
+.qris-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+  color: #555;
+  line-height: 1.8;
+}
+
+.qris-instructions li {
+  margin: 6px 0;
+}
+
+.qris-instructions strong {
+  color: #e63946;
+}
+
+/* Footer */
+.qris-footer {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  color: #999;
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+/* Fullscreen Modal */
+.qris-fullscreen-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.qris-fullscreen-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.qris-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #e63946;
+}
+
+.qris-close-btn:hover {
+  background: #e63946;
+  color: white;
+  transform: rotate(90deg);
+}
+
+.qris-fullscreen-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.qris-image-fullscreen {
+  width: 400px;
+  height: 400px;
+  object-fit: contain;
+  border: 3px solid #e63946;
+  border-radius: 12px;
+  background: white;
+  padding: 16px;
+  image-rendering: crisp-edges;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.qris-fullscreen-info {
+  width: 100%;
+}
+
+.qris-fullscreen-info p {
+  margin: 8px 0;
+  color: #555;
+  font-size: 1rem;
+}
+
+.qris-fullscreen-info strong {
+  color: #e63946;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .qris-display-card {
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .qris-image {
+    width: 240px;
+    height: 240px;
+  }
+
+  .qris-actions .btn {
+    min-width: 160px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+
+  .qris-image-fullscreen {
+    width: 320px;
+    height: 320px;
+  }
+
+  .qris-fullscreen-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qris-display-card {
+    padding: 12px;
+  }
+
+  .qris-image {
+    width: 200px;
+    height: 200px;
+  }
+
+  .qris-actions {
+    flex-direction: column;
+  }
+
+  .qris-actions .btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .qris-image-fullscreen {
+    width: 260px;
+    height: 260px;
+  }
+
+  .qris-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .qris-instructions {
+    font-size: 0.85rem;
+    padding: 12px;
+  }
+}

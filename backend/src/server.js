@@ -5,6 +5,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const sqlite3 = require('sqlite3').verbose()
 const path = require('path')
 const fs = require('fs')
+const QRCode = require('qrcode')
 
 // Initialize Express
 const app = express()
@@ -94,17 +95,51 @@ const dbAll = (sql, params = []) => {
 initializeDatabase()
 
 // ============================================
-// TELEGRAM BOT SETUP
+// TELEGRAM BOT SETUP - FIXED FOR CONFLICTS
 // ============================================
 
 const botToken = process.env.TELEGRAM_BOT_TOKEN || '8278697371:AAEXIhx_lXQDLv4uWoIZagZat-Tuxk0x5_Y'
 let bot = null
+let botInitialized = false
+let adminLoginSession = {} // Track admin login sessions per user
 
+// Initialize bot with proper error handling and conflict prevention
 if (botToken && botToken !== 'your_token_here') {
   try {
-    bot = new TelegramBot(botToken, { polling: true })
+    bot = new TelegramBot(botToken, { polling: { interval: 500, autoStart: true } })
+    botInitialized = true
+    
     console.log('✓ Telegram Bot initialized and polling')
     console.log('✓ Bot is ready to receive messages')
+  // ========== ADMIN COMMANDS ==========
+  
+  // /admin - Admin Login
+  bot.onText(/\/admin/, (msg) => {
+    const chatId = msg.chat.id
+    const userId = msg.from.id
+    
+    const loginMsg = `
+🔐 ADMIN LOGIN
+
+Enter your admin PIN to access admin functions:
+    `.trim()
+    
+    bot.sendMessage(chatId, loginMsg)
+    adminLoginSession[userId] = { state: 'awaiting_pin' }
+  })
+
+  // /logout - Admin Logout
+  bot.onText(/\/logout/, (msg) => {
+    const chatId = msg.chat.id
+    const userId = msg.from.id
+    
+    if (adminLoginSession[userId]?.authenticated) {
+      delete adminLoginSession[userId]
+      bot.sendMessage(chatId, '✓ Logged out successfully.')
+    } else {
+      bot.sendMessage(chatId, '❌ You are not logged in.')
+    }
+  })
 
     // /start - Welcome menu
     bot.onText(/\/start/, (msg) => {
@@ -119,6 +154,7 @@ Choose an action:
 📸 /verif    - Upload payment proof
 ✅ /status   - Check payment status  
 ❓ /help     - Get help
+🔐 /admin    - Admin login
 ━━━━━━━━━━━━━━━━━━━━━━
 
 Send any of these commands to get started!
@@ -208,7 +244,7 @@ Send /start and follow the steps carefully!
         .catch(err => console.error('Failed to send help:', err.message))
     })
 
-    // Handle text messages (Registration ID)
+    // Handle text messages (Registration ID or Admin PIN)
     bot.on('message', async (msg) => {
       if (msg.text && msg.text.startsWith('/')) return
       if (msg.photo) return
@@ -217,6 +253,30 @@ Send /start and follow the steps carefully!
       const userId = msg.from.id
       const text = msg.text
 
+      // Check if user is in admin login flow
+      if (adminLoginSession[userId]?.state === 'awaiting_pin') {
+        // Validate admin PIN
+        const adminPin = process.env.ADMIN_PIN || 'FT001'
+        if (text === adminPin) {
+          adminLoginSession[userId].authenticated = true
+          adminLoginSession[userId].state = 'logged_in'
+          bot.sendMessage(chatId, `
+✅ Admin logged in successfully!
+
+Available admin commands:
+• /list - List all registrations
+• /verify - Verify a payment
+• /stats - Show payment statistics
+• /logout - Logout
+          `.trim())
+          return
+        } else {
+          bot.sendMessage(chatId, '❌ Incorrect PIN. Try again.')
+          return
+        }
+      }
+
+      // Regular registration ID handling
       if (text && !isNaN(text) && text.trim().length > 0) {
         try {
           const regId = parseInt(text)
@@ -319,11 +379,74 @@ Your registration is complete! Good luck! 🎮
     })
 
     bot.on('polling_error', (error) => {
-      console.error('❌ Telegram bot polling error:', error.message)
+      if (error.code === 'ETELEGRAM' && error.message.includes('conflict')) {
+        console.warn('⚠️ Telegram bot conflict detected - restarting...')
+      } else {
+        console.error('❌ Telegram bot polling error:', error.message)
+      }
+    })
+
+    // Admin commands
+    bot.onText(/\/list/, async (msg) => {
+      const chatId = msg.chat.id
+      const userId = msg.from.id
+
+      if (!adminLoginSession[userId]?.authenticated) {
+        bot.sendMessage(chatId, '❌ Admin login required. Use /admin')
+        return
+      }
+
+      try {
+        const registrations = await dbAll('SELECT * FROM registrations ORDER BY createdAt DESC LIMIT 10')
+        if (registrations.length === 0) {
+          bot.sendMessage(chatId, 'No registrations found.')
+          return
+        }
+
+        let list = '📋 Recent Registrations:\n━━━━━━━━━━━━━━━\n'
+        registrations.forEach((reg, i) => {
+          list += `${i + 1}. ${reg.teamName} (ID: ${reg.id})\n   Fee: ${reg.fee}K | Status: ${reg.paymentStatus}\n`
+        })
+        bot.sendMessage(chatId, list)
+      } catch (error) {
+        bot.sendMessage(chatId, '❌ Error fetching registrations')
+      }
+    })
+
+    bot.onText(/\/stats/, async (msg) => {
+      const chatId = msg.chat.id
+      const userId = msg.from.id
+
+      if (!adminLoginSession[userId]?.authenticated) {
+        bot.sendMessage(chatId, '❌ Admin login required. Use /admin')
+        return
+      }
+
+      try {
+        const allRegs = await dbAll('SELECT * FROM registrations')
+        const verified = allRegs.filter(r => r.paymentStatus === 'verified').length
+        const pending = allRegs.filter(r => r.paymentStatus === 'pending').length
+        const totalFee = allRegs.reduce((sum, r) => sum + parseInt(r.fee || 0), 0)
+
+        const stats = `
+📊 PAYMENT STATISTICS
+━━━━━━━━━━━━━━━━━
+Total Registrations: <b>${allRegs.length}</b>
+Verified Payments: <b>${verified}</b> ✅
+Pending Payments: <b>${pending}</b> ⏳
+Total Fees Collected: <b>${totalFee}K</b>
+Total Players: <b>${allRegs.reduce((sum, r) => sum + parseInt(r.playerCount || 0), 0)}</b>
+        `.trim()
+
+        bot.sendMessage(chatId, stats, { parse_mode: 'HTML' })
+      } catch (error) {
+        bot.sendMessage(chatId, '❌ Error fetching statistics')
+      }
     })
 
   } catch (error) {
     console.error('❌ Failed to initialize Telegram Bot:', error.message)
+    botInitialized = false
     bot = null
   }
 } else {
@@ -499,6 +622,44 @@ app.post('/api/whatsapp/message', (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ message: 'Error generating message', error: error.message })
+  }
+})
+
+// Generate QRIS QR Code
+app.post('/api/qris/generate', async (req, res) => {
+  try {
+    const { amount, registrationId } = req.body
+
+    if (!amount || !registrationId) {
+      return res.status(400).json({ message: 'Missing amount or registrationId' })
+    }
+
+    // Payment data for QRIS (simplified)
+    const paymentData = `ID:${registrationId}|AMOUNT:${amount}K|BANK:DANA`
+
+    // Generate QR code as data URL
+    const qrDataUrl = await QRCode.toDataURL(paymentData, {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      quality: 0.95,
+      margin: 1,
+      width: 500, // High quality size
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    })
+
+    res.json({
+      qrCode: qrDataUrl,
+      amount,
+      registrationId,
+      message: 'Scan to pay',
+      quality: 'high-resolution'
+    })
+  } catch (error) {
+    console.error('QRIS generation error:', error)
+    res.status(500).json({ message: 'Error generating QRIS', error: error.message })
   }
 })
 
