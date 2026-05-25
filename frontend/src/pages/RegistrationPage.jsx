@@ -41,7 +41,8 @@ function RegistrationPage() {
       const registration = addRegistration(formData)
 
       // Send to backend
-      const response = await axios.post('http://localhost:5000/api/registrations', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+      const response = await axios.post(`${apiUrl}/api/registrations`, {
         ...formData,
         registrationId: registration.id
       })

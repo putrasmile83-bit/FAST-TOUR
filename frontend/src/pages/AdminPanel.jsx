@@ -19,7 +19,8 @@ function AdminPanel() {
   useEffect(() => {
     const fetchRegistrations = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/registrations')
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+        const response = await axios.get(`${apiUrl}/api/registrations`)
         setBackendRegistrations(response.data)
         
         // Sync payment status from backend
@@ -65,8 +66,9 @@ function AdminPanel() {
 
   const verifyPayment = async (registrationId) => {
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
       await axios.put(
-        `http://localhost:5000/api/registrations/${registrationId}/payment`,
+        `${apiUrl}/api/registrations/${registrationId}/payment`,
         { status: 'verified' }
       )
       updatePaymentStatus(registrationId, 'verified')
@@ -79,8 +81,9 @@ function AdminPanel() {
 
   const rejectPayment = async (registrationId) => {
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
       await axios.put(
-        `http://localhost:5000/api/registrations/${registrationId}/payment`,
+        `${apiUrl}/api/registrations/${registrationId}/payment`,
         { status: 'rejected' }
       )
       updatePaymentStatus(registrationId, 'rejected')

@@ -59,7 +59,7 @@ function PaymentPage() {
     try {
       // Send PENDING status (not verified!) - requires admin approval
       const response = await axios.put(
-        `http://localhost:5000/api/registrations/${registrationId}/payment`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/registrations/${registrationId}/payment`,
         { status: 'pending', method: paymentMethod, proofMethod: 'web' }
       )
 
