@@ -5,7 +5,6 @@ const TelegramBot = require('node-telegram-bot-api')
 const sqlite3 = require('sqlite3').verbose()
 const path = require('path')
 const fs = require('fs')
-const QRCode = require('qrcode')
 
 // Initialize Express
 const app = express()
@@ -622,44 +621,6 @@ app.post('/api/whatsapp/message', (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ message: 'Error generating message', error: error.message })
-  }
-})
-
-// Generate QRIS QR Code
-app.post('/api/qris/generate', async (req, res) => {
-  try {
-    const { amount, registrationId } = req.body
-
-    if (!amount || !registrationId) {
-      return res.status(400).json({ message: 'Missing amount or registrationId' })
-    }
-
-    // Payment data for QRIS (simplified)
-    const paymentData = `ID:${registrationId}|AMOUNT:${amount}K|BANK:DANA`
-
-    // Generate QR code as data URL
-    const qrDataUrl = await QRCode.toDataURL(paymentData, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      quality: 0.95,
-      margin: 1,
-      width: 500, // High quality size
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
-
-    res.json({
-      qrCode: qrDataUrl,
-      amount,
-      registrationId,
-      message: 'Scan to pay',
-      quality: 'high-resolution'
-    })
-  } catch (error) {
-    console.error('QRIS generation error:', error)
-    res.status(500).json({ message: 'Error generating QRIS', error: error.message })
   }
 })
 
