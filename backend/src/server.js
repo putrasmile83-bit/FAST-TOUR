@@ -379,7 +379,18 @@ Your registration is complete! Good luck! 🎮
 
     bot.on('polling_error', (error) => {
       if (error.code === 'ETELEGRAM' && error.message.includes('conflict')) {
-        console.warn('⚠️ Telegram bot conflict detected - restarting...')
+        console.warn('⚠️ Telegram bot conflict detected!')
+        console.log('Stopping polling and restarting in 3 seconds...')
+        
+        // Stop polling immediately
+        bot.stopPolling()
+        
+        // Restart polling after delay
+        setTimeout(() => {
+          console.log('Restarting bot polling...')
+          bot.startPolling({ restart: true })
+          console.log('✓ Bot polling restarted successfully')
+        }, 3000)
       } else {
         console.error('❌ Telegram bot polling error:', error.message)
       }
