@@ -1,263 +1,317 @@
 import React, { useState, useEffect } from 'react'
-import { useApp } from '../context/AppContext'
-import { toast } from 'react-toastify'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import axios from 'axios'
-import QRISDisplay from '../components/QRISDisplay'
-import '../styles/payment.css'
+import { toast } from 'react-toastify'
+import CountdownTimer from '../components/CountdownTimer'
+import PaymentStatus from '../components/PaymentStatus'
+import PaymentForm from '../components/PaymentForm'
+import PaymentMethod from '../components/PaymentMethod'
+
+/**
+ * FAST TOUR - Payment Page
+ * 
+ * Payment Flow:
+ * 1. User enters registration -> initiates payment
+ * 2. Backend generates: Order ID (TRN-XXXXX), unique nominal (1000-9999)
+ * 3. User sees: Total amount = base + unique nominal, 10-minute countdown
+ * 4. User selects payment method (QRIS/DANA/Transfer) and transfers exact amount
+ * 5. User uploads proof screenshot
+ * 6. Admin verifies -> Success sound + green checkmark ✓
+ * 7. On rejection -> Failed sound + red X ✗
+ */
 
 function PaymentPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const { adminInfo, addRegistration, updatePaymentStatus } = useApp()
-  const [paymentAmount, setPaymentAmount] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('bank')
-  const [showQRIS, setShowQRIS] = useState(false)
-  const [confirmPayment, setConfirmPayment] = useState(false)
-  const [teamData, setTeamData] = useState(null)
-  const [registrationId, setRegistrationId] = useState(null)
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
+  // State
+  const [registrationId, setRegistrationId] = useState(null)
+  const [teamData, setTeamData] = useState(null)
+  const [paymentData, setPaymentData] = useState(null)
+  const [selectedMethod, setSelectedMethod] = useState('QRIS')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Initialize: Get registration data from location state or URL params
   useEffect(() => {
-    // Get registration from state (passed from RegistrationPage)
     if (location.state?.registration) {
       const registration = location.state.registration
       setRegistrationId(registration.id)
-      setTeamData({ teamName: registration.teamName, fee: registration.fee })
-      setPaymentAmount(registration.fee)
+      setTeamData({
+        teamName: registration.teamName,
+        playerCount: registration.playerCount,
+        fee: registration.fee
+      })
     } else {
-      // Fallback: try to get from search params
       const team = searchParams.get('team')
       const amount = searchParams.get('amount')
-      if (team) {
-        setTeamData({ teamName: team, fee: amount || '5' })
-        setPaymentAmount(amount || '5')
+      if (team && amount) {
+        setTeamData({
+          teamName: team,
+          playerCount: 0,
+          fee: parseInt(amount)
+        })
       }
     }
   }, [location.state, searchParams])
 
-  const handlePaymentAmountChange = (e) => {
-    setPaymentAmount(e.target.value)
-    setShowQRIS(false)
-    setConfirmPayment(false)
-  }
-
-  const handleGenerateQRIS = () => {
-    if (!paymentAmount) {
-      toast.error('Please select payment amount')
-      return
-    }
-    setShowQRIS(true)
-  }
-
-  const handleConfirmPayment = async () => {
+  // Create payment request
+  const handleCreatePayment = async () => {
     if (!registrationId) {
-      toast.error('Registration not found')
+      setError('Registration ID not found')
+      toast.error('Please register first')
       return
     }
+
+    setLoading(true)
+    setError(null)
 
     try {
-      // Send PENDING status (not verified!) - requires admin approval
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/registrations/${registrationId}/payment`,
-        { status: 'pending', method: paymentMethod, proofMethod: 'web' }
-      )
+      const response = await fetch(`${apiUrl}/api/payments/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          registrationId,
+          paymentMethod: selectedMethod,
+          baseAmount: (teamData?.fee || 0) * 1000 // Convert to rupiah
+        })
+      })
 
-      // Also update local context
-      updatePaymentStatus(registrationId, 'pending')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create payment')
+      }
 
-      setConfirmPayment(true)
-      toast.success('⏳ Payment submitted for verification! Admin will review shortly.')
-      toast.info('Or: Send proof to Telegram bot @FT_PaymentBot for instant verification!')
-      
-      setTimeout(() => {
-        navigate('/admin-contact', { state: { registrationId } })
-      }, 3000)
-    } catch (error) {
-      console.error('Payment verification error:', error)
-      toast.error('Could not submit payment. Please try again.')
+      const data = await response.json()
+      setPaymentData(data)
+      toast.success('Payment request created! You have 10 minutes to complete it.')
+    } catch (err) {
+      setError(err.message)
+      toast.error(`Error: ${err.message}`)
+      console.error('Payment creation error:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const openWhatsApp = () => {
-    const message = `Hello Admin, I have completed the payment.\n\nTeam: ${teamData?.teamName || 'N/A'}\nRegistration ID: #${registrationId || 'N/A'}\nAmount: ${paymentAmount}K\n\nPlease verify my registration.`
-    const encodedMessage = encodeURIComponent(message)
-    window.open(`https://wa.me/${adminInfo.phone1.replace('+', '')}?text=${encodedMessage}`, '_blank')
+  const handleProofUploaded = () => {
+    toast.info('✓ Proof uploaded! Admin will verify your payment shortly.')
+  }
+
+  const handlePaymentExpired = () => {
+    setError('Payment has expired. Please create a new payment request.')
+    toast.warning('Payment expired. Creating new payment...')
+    setTimeout(() => {
+      setPaymentData(null)
+      handleCreatePayment()
+    }, 2000)
+  }
+
+  // Initial payment creation
+  useEffect(() => {
+    if (registrationId && teamData && !paymentData && !error) {
+      handleCreatePayment()
+    }
+  }, [registrationId, teamData])
+
+  if (!teamData) {
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+        <h2>Loading registration data...</h2>
+        <p className="text-muted">Please wait</p>
+      </div>
+    )
   }
 
   return (
-    <div className="payment-page">
-      <div className="payment-container">
-        <div className="payment-header">
-          <h1 className="pixel-font">Payment Gateway</h1>
-          <p>Complete your tournament registration</p>
-        </div>
+    <div className="payment-page container">
+      <div className="page-header">
+        <h1>Complete Your Payment</h1>
+        <p className="text-muted">Fast Tournament Registration - Payment System</p>
+      </div>
 
-        <div className="payment-grid">
-          {/* PAYMENT METHOD SELECTION */}
-          <div className="payment-section card">
-            <h2>Select Payment Method</h2>
-            <div className="payment-methods">
-              <label className="method-option">
-                <input
-                  type="radio"
-                  value="bank"
-                  checked={paymentMethod === 'bank'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span className="method-label">
-                  🏦 Bank Transfer
-                </span>
-              </label>
-              <label className="method-option">
-                <input
-                  type="radio"
-                  value="qris"
-                  checked={paymentMethod === 'qris'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span className="method-label">
-                  📱 QRIS
-                </span>
-              </label>
+      {error && (
+        <div className="alert alert-error">
+          <span>⚠</span> {error}
+        </div>
+      )}
+
+      {paymentData ? (
+        <div className="grid grid-2">
+          {/* LEFT COLUMN: Payment Info & Form */}
+          <div>
+            {/* Team Summary */}
+            <div className="card">
+              <div className="card-header">
+                <h3>Registration Details</h3>
+              </div>
+              <div className="card-body">
+                <div className="detail-item">
+                  <label>Team Name</label>
+                  <div className="detail-value">{teamData.teamName}</div>
+                </div>
+                <div className="detail-item">
+                  <label>Players</label>
+                  <div className="detail-value">{teamData.playerCount || 'N/A'}</div>
+                </div>
+                <div className="detail-item">
+                  <label>Base Fee</label>
+                  <div className="detail-value">Rp{(teamData.fee * 1000).toLocaleString('id-ID')}</div>
+                </div>
+              </div>
             </div>
 
-            {/* AMOUNT SELECTION */}
-            <div className="amount-section">
-              <h3>Select Amount</h3>
-              <div className="amount-grid">
-                {['1', '2', '3', '4', '5'].map(amount => (
-                  <button
-                    key={amount}
-                    className={`amount-btn ${paymentAmount === amount ? 'active' : ''}`}
-                    onClick={() => handlePaymentAmountChange({ target: { value: amount } })}
-                  >
-                    {amount}K
-                  </button>
+            {/* Countdown Timer */}
+            <CountdownTimer
+              expiresAt={paymentData.expiresAt}
+              onExpired={handlePaymentExpired}
+            />
+
+            {/* Payment Method Selection */}
+            <div className="card">
+              <div className="card-header">
+                <h3>Payment Method</h3>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                {['QRIS', 'DANA', 'TRANSFER'].map(method => (
+                  <label key={method} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--spacing-md)',
+                    padding: 'var(--spacing-md)',
+                    background: selectedMethod === method ? 'var(--bg-hover)' : 'transparent',
+                    border: `2px solid ${selectedMethod === method ? 'var(--border-color)' : 'var(--bg-hover)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    transition: 'all var(--transition-normal)'
+                  }}>
+                    <input
+                      type="radio"
+                      name="payment-method"
+                      value={method}
+                      checked={selectedMethod === method}
+                      onChange={(e) => setSelectedMethod(e.target.value)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{ fontWeight: 600 }}>
+                      {method === 'QRIS' && '📱 QRIS'}
+                      {method === 'DANA' && '💳 DANA'}
+                      {method === 'TRANSFER' && '🏦 Bank Transfer'}
+                    </span>
+                  </label>
                 ))}
               </div>
-              <div className="custom-amount">
-                <input
-                  type="number"
-                  placeholder="Custom amount"
-                  value={paymentAmount}
-                  onChange={handlePaymentAmountChange}
-                />
-              </div>
             </div>
-
-            {/* BANK TRANSFER INFO */}
-            {paymentMethod === 'bank' && (
-              <div className="bank-info animate-slide">
-                <h3>Bank Transfer Details</h3>
-                <div className="bank-details">
-                  <div className="detail-row">
-                    <span className="label">DANA ONLY:</span>
-                    <span className="value">{adminInfo.bankName}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">Account Number:</span>
-                    <span className="value copy-text">{adminInfo.bankAccount}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="label">Fee:</span>
-                    <span className="value highlight">{paymentAmount}K</span>
-                  </div>
-                </div>
-                <p className="info-text">
-                  Please transfer the exact amount to the account above. After transfer, click confirm button.
-                </p>
-              </div>
-            )}
-
-            {/* QRIS DISPLAY */}
-            {paymentMethod === 'qris' && (
-              <div className="qris-section">
-                <button className="btn btn-primary" onClick={handleGenerateQRIS}>
-                  Generate QRIS ({paymentAmount}K)
-                </button>
-                {showQRIS && (
-                  <div className="animate-slide">
-                    <QRISDisplay 
-                      amount={paymentAmount} 
-                      registrationId={registrationId}
-                      onClose={() => setShowQRIS(false)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* PAYMENT SUMMARY */}
-          <div className="payment-section card">
-            <h2>Payment Summary</h2>
-            
-            {/* TEAM INFO */}
-            {teamData && (
-              <div className="team-info" style={{ marginBottom: '20px', paddingBottom: '15px', borderBottom: '2px solid #fff' }}>
-                <div className="summary-row">
-                  <span>Team Name</span>
-                  <span className="highlight">{teamData.teamName}</span>
-                </div>
-                {registrationId && (
-                  <div className="summary-row">
-                    <span>Registration ID</span>
-                    <span className="copy-text" style={{ cursor: 'pointer', fontFamily: 'monospace' }}>
-                      #{registrationId}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="summary">
-              <div className="summary-row">
-                <span>Tournament Registration</span>
-                <span>{paymentAmount}K</span>
-              </div>
-              <div className="summary-row">
-                <span>Fees</span>
-                <span>0K</span>
-              </div>
-              <div className="summary-row total">
-                <span>Total Amount</span>
-                <span className="highlight">{paymentAmount}K</span>
-              </div>
-            </div>
+          {/* RIGHT COLUMN: Payment Status & Form */}
+          <div>
+            {/* Payment Status with Real-time Polling */}
+            <PaymentStatus
+              paymentId={paymentData.paymentId}
+              apiUrl={apiUrl}
+            />
 
-            <div className="confirmation-section">
-              <label className="confirm-checkbox">
-                <input
-                  type="checkbox"
-                  checked={confirmPayment}
-                  onChange={(e) => setConfirmPayment(e.target.checked)}
-                />
-                <span>I have completed the payment</span>
-              </label>
-            </div>
+            {/* Payment Method Details & Amount */}
+            <PaymentMethod
+              method={selectedMethod}
+              amount={teamData.fee * 1000}
+              uniqueNominal={paymentData.uniqueNominal}
+              totalAmount={paymentData.totalAmount}
+              orderId={paymentData.orderId}
+            />
 
-            <div className="payment-actions">
-              <button
-                className="btn btn-primary"
-                onClick={handleConfirmPayment}
-                disabled={!confirmPayment || !paymentAmount}
-              >
-                Confirm Payment
-              </button>
-              <button className="btn btn-secondary" onClick={openWhatsApp}>
-                📱 Message Admin
-              </button>
-            </div>
-
-            <div className="admin-contacts">
-              <h4>Contact Admin</h4>
-              <p>Admin 1: {adminInfo.phone1}</p>
-              <p>Admin 2: {adminInfo.phone2}</p>
-            </div>
+            {/* Upload Payment Proof */}
+            <PaymentForm
+              paymentId={paymentData.paymentId}
+              apiUrl={apiUrl}
+              onProofUploaded={handleProofUploaded}
+            />
           </div>
         </div>
-      </div>
+      ) : loading ? (
+        <div className="card" style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+          <div className="animate-pulse mb-" style={{ fontSize: '1.25rem' }}>
+            Creating payment request...
+          </div>
+          <p className="text-muted">Generating your payment details</p>
+        </div>
+      ) : null}
+
+      <style jsx>{`
+        .payment-page {
+          min-height: 100vh;
+          padding-top: var(--spacing-xl);
+          padding-bottom: var(--spacing-xl);
+        }
+
+        .page-header {
+          text-align: center;
+          margin-bottom: var(--spacing-2xl);
+        }
+
+        .page-header h1 {
+          margin-bottom: var(--spacing-md);
+          background: var(--gradient-primary);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .alert {
+          padding: var(--spacing-lg);
+          border-radius: var(--radius-lg);
+          margin-bottom: var(--spacing-lg);
+          display: flex;
+          align-items: center;
+          gap: var(--spacing-md);
+          font-weight: 600;
+        }
+
+        .alert-error {
+          background: rgba(248, 113, 113, 0.1);
+          border: 2px solid var(--status-failed);
+          color: var(--status-failed);
+        }
+
+        .detail-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: var(--spacing-md);
+          margin-bottom: var(--spacing-sm);
+          background: var(--bg-surface);
+          border-radius: var(--radius-md);
+        }
+
+        .detail-item label {
+          color: var(--text-muted);
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+          font-weight: 700;
+          color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+          .page-header {
+            margin-bottom: var(--spacing-xl);
+          }
+
+          .detail-item {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .detail-item label {
+            margin-bottom: var(--spacing-xs);
+          }
+        }
+      `}</style>
     </div>
   )
 }
