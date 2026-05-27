@@ -1,22 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import CountdownTimer from '../components/CountdownTimer'
-import PaymentStatus from '../components/PaymentStatus'
-import PaymentForm from '../components/PaymentForm'
-import PaymentMethod from '../components/PaymentMethod'
+import '../styles/payment.css'
 
 /**
- * FAST TOUR - Payment Page
- * 
- * Payment Flow:
- * 1. User enters registration -> initiates payment
- * 2. Backend generates: Order ID (TRN-XXXXX), unique nominal (1000-9999)
- * 3. User sees: Total amount = base + unique nominal, 10-minute countdown
- * 4. User selects payment method (QRIS/DANA/Transfer) and transfers exact amount
- * 5. User uploads proof screenshot
- * 6. Admin verifies -> Success sound + green checkmark ✓
- * 7. On rejection -> Failed sound + red X ✗
+ * FAST TOUR - Simplified Payment Page
+ * Clean, stable, no styled-jsx
  */
 
 function PaymentPage() {
@@ -33,34 +22,23 @@ function PaymentPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Initialize: Get registration data from location state or URL params
+  // Get registration data
   useEffect(() => {
     if (location.state?.registration) {
-      const registration = location.state.registration
-      setRegistrationId(registration.id)
+      const reg = location.state.registration
+      setRegistrationId(reg.id)
       setTeamData({
-        teamName: registration.teamName,
-        playerCount: registration.playerCount,
-        fee: registration.fee
+        teamName: reg.teamName,
+        playerCount: reg.playerCount,
+        fee: reg.fee
       })
-    } else {
-      const team = searchParams.get('team')
-      const amount = searchParams.get('amount')
-      if (team && amount) {
-        setTeamData({
-          teamName: team,
-          playerCount: 0,
-          fee: parseInt(amount)
-        })
-      }
     }
-  }, [location.state, searchParams])
+  }, [location.state])
 
-  // Create payment request
+  // Create payment
   const handleCreatePayment = async () => {
     if (!registrationId) {
-      setError('Registration ID not found')
-      toast.error('Please register first')
+      setError('No registration ID found')
       return
     }
 
@@ -74,41 +52,27 @@ function PaymentPage() {
         body: JSON.stringify({
           registrationId,
           paymentMethod: selectedMethod,
-          baseAmount: (teamData?.fee || 0) * 1000 // Convert to rupiah
+          baseAmount: (teamData?.fee || 0) * 1000
         })
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create payment')
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to create payment')
       }
 
       const data = await response.json()
       setPaymentData(data)
-      toast.success('Payment request created! You have 10 minutes to complete it.')
+      toast.success('✓ Payment created! You have 10 minutes.')
     } catch (err) {
       setError(err.message)
-      toast.error(`Error: ${err.message}`)
-      console.error('Payment creation error:', err)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleProofUploaded = () => {
-    toast.info('✓ Proof uploaded! Admin will verify your payment shortly.')
-  }
-
-  const handlePaymentExpired = () => {
-    setError('Payment has expired. Please create a new payment request.')
-    toast.warning('Payment expired. Creating new payment...')
-    setTimeout(() => {
-      setPaymentData(null)
-      handleCreatePayment()
-    }, 2000)
-  }
-
-  // Initial payment creation
+  // Auto-create payment
   useEffect(() => {
     if (registrationId && teamData && !paymentData && !error) {
       handleCreatePayment()
@@ -117,201 +81,145 @@ function PaymentPage() {
 
   if (!teamData) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
-        <h2>Loading registration data...</h2>
-        <p className="text-muted">Please wait</p>
+      <div className="payment-page">
+        <div className="payment-container">
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Loading...</p>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="payment-page container">
-      <div className="page-header">
-        <h1>Complete Your Payment</h1>
-        <p className="text-muted">Fast Tournament Registration - Payment System</p>
+    <div className="payment-page">
+      <div className="payment-container">
+        <div className="page-header">
+          <h1>💳 Complete Payment</h1>
+          <p>Fast Tournament Registration</p>
+        </div>
+
+        {error && (
+          <div className="message error">
+            ⚠ {error}
+          </div>
+        )}
+
+        {paymentData ? (
+          <div className="payment-grid">
+            {/* LEFT: Payment Info */}
+            <div>
+              {/* Team Info */}
+              <div className="payment-section">
+                <h2>📋 Registration</h2>
+                <div className="info-item">
+                  <span className="info-label">Team</span>
+                  <span className="info-value">{teamData.teamName}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Players</span>
+                  <span className="info-value">{teamData.playerCount}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Base Fee</span>
+                  <span className="info-value accent">Rp{(teamData.fee * 1000).toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+
+              {/* Countdown */}
+              <div className="payment-section">
+                <h2>⏱️ Time Remaining</h2>
+                <div className="countdown-display">{paymentData.countdown || '10:00'}</div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="payment-section">
+                <h2>💳 Method</h2>
+                <div className="payment-methods">
+                  {['QRIS', 'DANA', 'TRANSFER'].map(m => (
+                    <label key={m} className={`method-option ${selectedMethod === m ? 'selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="method"
+                        value={m}
+                        checked={selectedMethod === m}
+                        onChange={(e) => setSelectedMethod(e.target.value)}
+                      />
+                      <span className="method-label">
+                        {m === 'QRIS' && '📱 QRIS'}
+                        {m === 'DANA' && '💳 DANA'}
+                        {m === 'TRANSFER' && '🏦 Bank Transfer'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT: Payment Details */}
+            <div>
+              {/* Amount Summary */}
+              <div className="payment-section">
+                <h2>💰 Amount Details</h2>
+                <div className="info-item">
+                  <span className="info-label">Base Amount</span>
+                  <span className="info-value">Rp{(teamData.fee * 1000).toLocaleString('id-ID')}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Unique Nominal</span>
+                  <span className="info-value accent">+Rp{paymentData.uniqueNominal?.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="info-item" style={{ background: 'var(--gradient-primary)', color: '#000', borderRadius: 'var(--radius-md)', fontWeight: 'bold' }}>
+                  <span className="info-label" style={{ color: '#000' }}>TOTAL TO SEND</span>
+                  <span className="info-value" style={{ color: '#000', fontSize: '1.25rem' }}>Rp{paymentData.totalAmount?.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+
+              {/* Order ID */}
+              {paymentData.orderId && (
+                <div className="payment-section">
+                  <h2>🔢 Order ID</h2>
+                  <div style={{ textAlign: 'center', padding: 'var(--spacing-lg)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-accent)', fontFamily: 'monospace' }}>
+                    {paymentData.orderId}
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 'var(--spacing-md)', textAlign: 'center' }}>
+                    ℹ️ Use this when transferring via bank
+                  </p>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="payment-section">
+                <h2>📊 Status</h2>
+                <div className="status-box">
+                  <div className="status-icon">⏳</div>
+                  <div className="status-text">Pending</div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 'var(--spacing-md)' }}>
+                    Waiting for payment proof...
+                  </p>
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div className="payment-section">
+                <h2>📝 Instructions</h2>
+                <ol style={{ marginLeft: 'var(--spacing-lg)', color: 'var(--text-muted)', lineHeight: 1.8 }}>
+                  <li>Transfer exact amount: <strong style={{ color: 'var(--text-accent)' }}>Rp{paymentData.totalAmount?.toLocaleString('id-ID')}</strong></li>
+                  <li>Take screenshot of transfer confirmation</li>
+                  <li>Come back and upload the proof</li>
+                  <li>Admin will verify (usually < 5 minutes)</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        ) : loading ? (
+          <div className="loading-spinner">
+            <div className="spinner"></div>
+            <p>Creating payment...</p>
+          </div>
+        ) : null}
       </div>
-
-      {error && (
-        <div className="alert alert-error">
-          <span>⚠</span> {error}
-        </div>
-      )}
-
-      {paymentData ? (
-        <div className="grid grid-2">
-          {/* LEFT COLUMN: Payment Info & Form */}
-          <div>
-            {/* Team Summary */}
-            <div className="card">
-              <div className="card-header">
-                <h3>Registration Details</h3>
-              </div>
-              <div className="card-body">
-                <div className="detail-item">
-                  <label>Team Name</label>
-                  <div className="detail-value">{teamData.teamName}</div>
-                </div>
-                <div className="detail-item">
-                  <label>Players</label>
-                  <div className="detail-value">{teamData.playerCount || 'N/A'}</div>
-                </div>
-                <div className="detail-item">
-                  <label>Base Fee</label>
-                  <div className="detail-value">Rp{(teamData.fee * 1000).toLocaleString('id-ID')}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Countdown Timer */}
-            <CountdownTimer
-              expiresAt={paymentData.expiresAt}
-              onExpired={handlePaymentExpired}
-            />
-
-            {/* Payment Method Selection */}
-            <div className="card">
-              <div className="card-header">
-                <h3>Payment Method</h3>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                {['QRIS', 'DANA', 'TRANSFER'].map(method => (
-                  <label key={method} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-md)',
-                    padding: 'var(--spacing-md)',
-                    background: selectedMethod === method ? 'var(--bg-hover)' : 'transparent',
-                    border: `2px solid ${selectedMethod === method ? 'var(--border-color)' : 'var(--bg-hover)'}`,
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    transition: 'all var(--transition-normal)'
-                  }}>
-                    <input
-                      type="radio"
-                      name="payment-method"
-                      value={method}
-                      checked={selectedMethod === method}
-                      onChange={(e) => setSelectedMethod(e.target.value)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span style={{ fontWeight: 600 }}>
-                      {method === 'QRIS' && '📱 QRIS'}
-                      {method === 'DANA' && '💳 DANA'}
-                      {method === 'TRANSFER' && '🏦 Bank Transfer'}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: Payment Status & Form */}
-          <div>
-            {/* Payment Status with Real-time Polling */}
-            <PaymentStatus
-              paymentId={paymentData.paymentId}
-              apiUrl={apiUrl}
-            />
-
-            {/* Payment Method Details & Amount */}
-            <PaymentMethod
-              method={selectedMethod}
-              amount={teamData.fee * 1000}
-              uniqueNominal={paymentData.uniqueNominal}
-              totalAmount={paymentData.totalAmount}
-              orderId={paymentData.orderId}
-            />
-
-            {/* Upload Payment Proof */}
-            <PaymentForm
-              paymentId={paymentData.paymentId}
-              apiUrl={apiUrl}
-              onProofUploaded={handleProofUploaded}
-            />
-          </div>
-        </div>
-      ) : loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
-          <div className="animate-pulse mb-" style={{ fontSize: '1.25rem' }}>
-            Creating payment request...
-          </div>
-          <p className="text-muted">Generating your payment details</p>
-        </div>
-      ) : null}
-
-      <style jsx>{`
-        .payment-page {
-          min-height: 100vh;
-          padding-top: var(--spacing-xl);
-          padding-bottom: var(--spacing-xl);
-        }
-
-        .page-header {
-          text-align: center;
-          margin-bottom: var(--spacing-2xl);
-        }
-
-        .page-header h1 {
-          margin-bottom: var(--spacing-md);
-          background: var(--gradient-primary);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .alert {
-          padding: var(--spacing-lg);
-          border-radius: var(--radius-lg);
-          margin-bottom: var(--spacing-lg);
-          display: flex;
-          align-items: center;
-          gap: var(--spacing-md);
-          font-weight: 600;
-        }
-
-        .alert-error {
-          background: rgba(248, 113, 113, 0.1);
-          border: 2px solid var(--status-failed);
-          color: var(--status-failed);
-        }
-
-        .detail-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: var(--spacing-md);
-          margin-bottom: var(--spacing-sm);
-          background: var(--bg-surface);
-          border-radius: var(--radius-md);
-        }
-
-        .detail-item label {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .detail-value {
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        @media (max-width: 768px) {
-          .page-header {
-            margin-bottom: var(--spacing-xl);
-          }
-
-          .detail-item {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .detail-item label {
-            margin-bottom: var(--spacing-xs);
-          }
-        }
-      `}</style>
     </div>
   )
 }
