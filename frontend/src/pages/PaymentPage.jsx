@@ -208,7 +208,7 @@ function PaymentPage() {
                   <li>Transfer exact amount: <strong style={{ color: 'var(--text-accent)' }}>Rp{paymentData.totalAmount?.toLocaleString('id-ID')}</strong></li>
                   <li>Take screenshot of transfer confirmation</li>
                   <li>Come back and upload the proof</li>
-                  <li>Admin will verify (usually < 5 minutes)</li>
+                  <li>Admin will verify (usually &lt; 5 minutes)</li>
                 </ol>
               </div>
             </div>
